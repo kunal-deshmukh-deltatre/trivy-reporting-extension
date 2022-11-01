@@ -1,0 +1,17 @@
+{
+  "name": "trivy-reporting-extenstion",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "cd trivy-reporter-task && tsc",
+    "build:ext": "tfx extension create --manifest-globs vss-extension.json"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "vss-web-extension-sdk": "^5.141.0"
+  }
+}

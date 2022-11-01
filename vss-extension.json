@@ -1,0 +1,58 @@
+{
+    "manifestVersion": 1,
+    "id": "trivy-reporter-deltatre",
+    "publisher": "Deltatre",
+    "version": "1.1.23",
+    "name": "Trivy Reporter-Deltatre Security",
+    "description": "Trivy Scanner reporter extenstion",
+    "public": false,
+    "categories": [
+        "Azure Repos",
+        "Azure Pipelines"
+    ],
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],
+    "contributions": [
+        {
+            "id": "service-endpoint",
+            "description": "Service Endpoint for Trivy Reporter-Deltatre Extension",
+            "type": "ms.vss-endpoint.service-endpoint-type",
+            "targets": [
+                "ms.vss-endpoint.endpoint-types"
+            ],
+            "properties": {
+                "name": "deltatre-trivy-reporter-service",
+                "displayName": "Trivy Reporter-Deltatre",
+                "url": {
+                    "displayName": "Server Url",
+                    "helpText": "Url for the Trivy Reporter API."
+                },
+                "authenticationSchemes": [
+                    {
+                        "type": "ms.vss-endpoint.endpoint-auth-scheme-token"
+                    }
+                ],
+                "helpMarkDown": "<a href=\"url-to-documentation\" target=\"_blank\"><b>Learn More</b></a>"
+            }
+        },
+        {
+            "id": "build-task",
+            "description": "Task with a dynamic property getting data from an endpoint REST data source",
+            "type": "ms.vss-distributed-task.task",
+            "targets": [
+                "ms.vss-distributed-task.tasks"
+            ],
+            "properties": {
+                "name": "trivy-reporter-task"
+            }
+        }
+    ],
+    "files": [
+        {
+            "path": "trivy-reporter-task"
+        }
+    ]
+}

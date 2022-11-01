@@ -1,0 +1,44 @@
+{
+    "id": "6557a6d2-4caf-4247-99ea-5131286a8753",
+    "name": "trivy-reporter-task",
+    "friendlyName": "Trivy reporter",
+    "description": "Task collects trivy reports and updates centralised location.",
+    "author": "deltatre",
+    "helpMarkDown": "Pushes trivy reports to centralised location.",
+    "category": "Build",
+    "visibility": [
+        "Build",
+        "Release"
+    ],
+    "demands": [],
+    "version": {
+        "Major": "2",
+        "Minor": "1",
+        "Patch": "23"
+    },
+    "minimumAgentVersion": "1.95.0",
+    "instanceNameFormat": "Service Endpoint Build Task $(project)",
+    "inputs": [
+        {
+            "name": "reportServerEndpoint",
+            "type": "connectedService:deltatre-trivy-reporter-service",
+            "label": "Reporter Service connection",
+            "defaultValue": "",
+            "required": true,
+            "helpMarkDown": "Select the Trivy Reporter end point to use."
+        },
+        {
+            "name": "scannerResultsFile",
+            "type": "string",
+            "label": "Trivy Result file path",
+            "defaultValue": "results.json",
+            "required": true,
+            "helpMarkDown": "Trivy Scanner Result file"
+        }
+    ],
+    "execution": {
+        "Node": {
+            "target": "index.js"
+        }
+    }
+}
