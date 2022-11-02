@@ -4,27 +4,30 @@ import * as fs from 'fs';
 const tmpPath = "/tmp/"
 async function run() {
     try {
-        console.log('starting reporting task');
-        const trivyResultPath = tmpPath + "trivy-results-*.json";
-        var files = fs.readdirSync(tmpPath).filter((fn) => {
-            console.log(fn);
-            return fn.startsWith('trivy-results-')
-        });
-        let contents: string = '';
-        console.log('Searching files', files[0]);
-        if (files && files.length > 0) {
-            contents = fs.readFileSync(`${tmpPath}${files[0]}`, 'utf8')
-        }
-
-        const inputString: string | undefined = tl.getInput('scannerResultsFile', true);
+        console.log('Starting reporting task....');
+        const inputPath: any = tl.getInput('scannerResultsFile', true);
         const reportServerEndpoint: string = tl.getInput('reportServerEndpoint', true) || 'sdf';
-        if (inputString == 'bad') {
-            tl.setResult(tl.TaskResult.Failed, 'Bad input was given');
-            return;
-        }
-        console.log('Hello Task', inputString);
+        let contents: string = '';
 
-        const GIT_BRANCH = tl.getVariable("Build.Repository.Name");
+        if (inputPath?.toLowerCase() === 'default') {
+            console.log(`Reading default file path`)
+            var files = fs.readdirSync(tmpPath).filter((fn) => {
+                console.log(fn);
+                return fn.startsWith('trivy-results-')
+            });
+
+            if (files && files.length > 0) {
+                contents = fs.readFileSync(`${tmpPath}${files[0]}`, 'utf8')
+            } else {
+                tl.setResult(tl.TaskResult.Failed, `Unable to read default trivy results file.`)
+            }
+        } else {
+            console.log(`Reading results file from ${inputPath}`)
+            contents = fs.readFileSync(inputPath, 'utf8')
+        }
+
+
+        const GIT_BRANCH = tl.getVariable("Build.SourceBranch");
         const GIT_COMMIT_ID = tl.getVariable("Build.SourceVersion");
         const PROJECT_NAME = tl.getVariable("System.TeamProject");
         const GIT_REPOSITORY_URI = tl.getVariable("Build.Repository.Uri");
@@ -41,30 +44,30 @@ async function run() {
             vulnerabilitiesFile: JSON.parse(contents)
 
         }
-        console.log(input);
 
-
-        console.log('Connection Endpoint', reportServerEndpoint);
+        console.log('Connection Endpoint bieng used: ', reportServerEndpoint);
         const url = tl.getEndpointUrl(reportServerEndpoint, false);
         const token = tl.getEndpointAuthorizationParameter(
             reportServerEndpoint,
             "apitoken",
             false
         );
-        console.log(url, token);
-        if (url) {
-            await post(url, input);
+        if (url && token) {
+            await post(url, input, token);
+            tl.setResult(tl.TaskResult.Succeeded, 'Successfully Completed the task.');
+        } else {
+            tl.setResult(tl.TaskResult.SucceededWithIssues, 'Issue with Service connection configuration.');
         }
 
-        tl.setResult(tl.TaskResult.Succeeded, 'Successfully Completed the task.');
+
 
     }
     catch (err: any) {
-        tl.setResult(tl.TaskResult.Failed, err.message);
+        tl.setResult(tl.TaskResult.SucceededWithIssues, err.message);
     }
 }
 
-async function post(url: string, data: any) {
+async function post(url: string, data: any, token: any) {
     const dataString = JSON.stringify(data)
 
     const options = {
@@ -72,7 +75,7 @@ async function post(url: string, data: any) {
         headers: {
             'Content-Type': 'application/json',
             'Content-Length': dataString.length,
-            'x-functions-key': 'o37f2_-_J7EJhdhnzx6vBaw31WXJvRgRtGiEi63zZXseAzFu2QtuCA==',
+            'x-functions-key': token,
         },
         timeout: 1000, // in ms
     }
