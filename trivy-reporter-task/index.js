@@ -33,11 +33,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const tl = require("azure-pipelines-task-lib/task");
+var https = require('follow-redirects').https;
 const fs = __importStar(require("fs"));
 const tmpPath = "/tmp/";
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            console.log('starting reporting task');
             const trivyResultPath = tmpPath + "trivy-results-*.json";
             var files = fs.readdirSync(tmpPath).filter((fn) => {
                 console.log(fn);
@@ -64,22 +66,61 @@ function run() {
             const input = {
                 gitBranch: GIT_BRANCH,
                 gitCommitID: GIT_COMMIT_ID,
-                gitRepositoryName: GIT_REPO_NAME,
+                repositoryName: GIT_REPO_NAME,
                 gitReopsitoryUrl: GIT_REPOSITORY_URI,
                 projectId: PROJECT_ID,
                 projectName: PROJECT_NAME,
-                contents: JSON.parse(contents)
+                vulnerabilitiesFile: JSON.parse(contents)
             };
             console.log(input);
             console.log('Connection Endpoint', reportServerEndpoint);
             const url = tl.getEndpointUrl(reportServerEndpoint, false);
             const token = tl.getEndpointAuthorizationParameter(reportServerEndpoint, "apitoken", false);
             console.log(url, token);
-            tl.addAttachment;
+            if (url) {
+                yield post(url, input);
+            }
+            tl.setResult(tl.TaskResult.Succeeded, 'Successfully Completed the task.');
         }
         catch (err) {
             tl.setResult(tl.TaskResult.Failed, err.message);
         }
+    });
+}
+function post(url, data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const dataString = JSON.stringify(data);
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': dataString.length,
+                'x-functions-key': 'o37f2_-_J7EJhdhnzx6vBaw31WXJvRgRtGiEi63zZXseAzFu2QtuCA==',
+            },
+            timeout: 1000, // in ms
+        };
+        return new Promise((resolve, reject) => {
+            const req = https.request(url, options, (res) => {
+                if (res.statusCode < 200 || res.statusCode > 299) {
+                    return reject(new Error(`HTTP status code ${res.statusCode}`));
+                }
+                const body = [];
+                res.on('data', (chunk) => body.push(chunk));
+                res.on('end', () => {
+                    const resString = Buffer.concat(body).toString();
+                    resolve(resString);
+                });
+            });
+            req.on('error', (err) => {
+                reject(err);
+            });
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request time out'));
+            });
+            req.write(dataString);
+            req.end();
+        });
     });
 }
 run();
