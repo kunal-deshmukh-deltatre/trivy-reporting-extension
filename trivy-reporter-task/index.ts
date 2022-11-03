@@ -12,13 +12,13 @@ async function run() {
         if (inputPath?.toLowerCase() === 'default') {
             console.log(`Reading default file path`)
             var files = fs.readdirSync(tmpPath).filter((fn) => {
-                console.log(fn);
                 return fn.startsWith('trivy-results-')
             });
 
             if (files && files.length > 0) {
                 contents = fs.readFileSync(`${tmpPath}${files[0]}`, 'utf8')
             } else {
+                console.error(`Unable to read default trivy results file.`);
                 tl.setResult(tl.TaskResult.Failed, `Unable to read default trivy results file.`)
             }
         } else {
@@ -45,8 +45,9 @@ async function run() {
 
         }
 
-        console.log('Connection Endpoint bieng used: ', reportServerEndpoint);
+
         const url = tl.getEndpointUrl(reportServerEndpoint, false);
+        console.log('Connection Endpoint being used: ', url);
         const token = tl.getEndpointAuthorizationParameter(
             reportServerEndpoint,
             "apitoken",
@@ -54,8 +55,11 @@ async function run() {
         );
         if (url && token) {
             await post(url, input, token);
+            console.log('Results reported successfully.')
             tl.setResult(tl.TaskResult.Succeeded, 'Successfully Completed the task.');
+
         } else {
+            console.error('Issue with Service connection configuration.')
             tl.setResult(tl.TaskResult.SucceededWithIssues, 'Issue with Service connection configuration.');
         }
 
@@ -63,6 +67,7 @@ async function run() {
 
     }
     catch (err: any) {
+        console.error(`Error: ${err.message || err}`);
         tl.setResult(tl.TaskResult.SucceededWithIssues, err.message);
     }
 }

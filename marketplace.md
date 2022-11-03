@@ -1,7 +1,7 @@
 # Deltatre - Trivy Reporter 
 
 This extension is used to report trivy generated reports to central location for reporting. It has two components
-* Azure Devops Service connection extention
+* Azure Devops Service connection extension
 * Azure DevOps Pipeline Task 
 
 > Note Azure DevOps Server: Since this extension is private, make sure you install it on Azure DevOps Server.
@@ -14,7 +14,6 @@ This extension is used to report trivy generated reports to central location for
 
 ## Getting Started
 
-Currently, this extension works only with Official Trivy Azure DevOps Extension.
 
 ### Step 1 : Create & Configure Service Connection in Azure Devops
 

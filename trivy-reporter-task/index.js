@@ -39,25 +39,28 @@ const tmpPath = "/tmp/";
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log('starting reporting task');
-            const trivyResultPath = tmpPath + "trivy-results-*.json";
-            var files = fs.readdirSync(tmpPath).filter((fn) => {
-                console.log(fn);
-                return fn.startsWith('trivy-results-');
-            });
-            let contents = '';
-            console.log('Searching files', files[0]);
-            if (files && files.length > 0) {
-                contents = fs.readFileSync(`${tmpPath}${files[0]}`, 'utf8');
-            }
-            const inputString = tl.getInput('scannerResultsFile', true);
+            console.log('Starting reporting task....');
+            const inputPath = tl.getInput('scannerResultsFile', true);
             const reportServerEndpoint = tl.getInput('reportServerEndpoint', true) || 'sdf';
-            if (inputString == 'bad') {
-                tl.setResult(tl.TaskResult.Failed, 'Bad input was given');
-                return;
+            let contents = '';
+            if ((inputPath === null || inputPath === void 0 ? void 0 : inputPath.toLowerCase()) === 'default') {
+                console.log(`Reading default file path`);
+                var files = fs.readdirSync(tmpPath).filter((fn) => {
+                    return fn.startsWith('trivy-results-');
+                });
+                if (files && files.length > 0) {
+                    contents = fs.readFileSync(`${tmpPath}${files[0]}`, 'utf8');
+                }
+                else {
+                    console.error(`Unable to read default trivy results file.`);
+                    tl.setResult(tl.TaskResult.Failed, `Unable to read default trivy results file.`);
+                }
             }
-            console.log('Hello Task', inputString);
-            const GIT_BRANCH = tl.getVariable("Build.Repository.Name");
+            else {
+                console.log(`Reading results file from ${inputPath}`);
+                contents = fs.readFileSync(inputPath, 'utf8');
+            }
+            const GIT_BRANCH = tl.getVariable("Build.SourceBranch");
             const GIT_COMMIT_ID = tl.getVariable("Build.SourceVersion");
             const PROJECT_NAME = tl.getVariable("System.TeamProject");
             const GIT_REPOSITORY_URI = tl.getVariable("Build.Repository.Uri");
@@ -72,22 +75,26 @@ function run() {
                 projectName: PROJECT_NAME,
                 vulnerabilitiesFile: JSON.parse(contents)
             };
-            console.log(input);
-            console.log('Connection Endpoint', reportServerEndpoint);
             const url = tl.getEndpointUrl(reportServerEndpoint, false);
+            console.log('Connection Endpoint being used: ', url);
             const token = tl.getEndpointAuthorizationParameter(reportServerEndpoint, "apitoken", false);
-            console.log(url, token);
-            if (url) {
-                yield post(url, input);
+            if (url && token) {
+                yield post(url, input, token);
+                console.log('Results reported successfully.');
+                tl.setResult(tl.TaskResult.Succeeded, 'Successfully Completed the task.');
             }
-            tl.setResult(tl.TaskResult.Succeeded, 'Successfully Completed the task.');
+            else {
+                console.error('Issue with Service connection configuration.');
+                tl.setResult(tl.TaskResult.SucceededWithIssues, 'Issue with Service connection configuration.');
+            }
         }
         catch (err) {
-            tl.setResult(tl.TaskResult.Failed, err.message);
+            console.error(`Error: ${err.message || err}`);
+            tl.setResult(tl.TaskResult.SucceededWithIssues, err.message);
         }
     });
 }
-function post(url, data) {
+function post(url, data, token) {
     return __awaiter(this, void 0, void 0, function* () {
         const dataString = JSON.stringify(data);
         const options = {
@@ -95,7 +102,7 @@ function post(url, data) {
             headers: {
                 'Content-Type': 'application/json',
                 'Content-Length': dataString.length,
-                'x-functions-key': 'o37f2_-_J7EJhdhnzx6vBaw31WXJvRgRtGiEi63zZXseAzFu2QtuCA==',
+                'x-functions-key': token,
             },
             timeout: 1000, // in ms
         };
